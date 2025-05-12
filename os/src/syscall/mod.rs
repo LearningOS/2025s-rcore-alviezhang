@@ -21,14 +21,37 @@ const SYSCALL_GET_TIME: usize = 169;
 /// trace syscall
 const SYSCALL_TRACE: usize = 410;
 
+/// syscall count
+pub const TRACE_STATS_SIZE: usize = 5;
+
 mod fs;
 mod process;
 
 use fs::*;
 use process::*;
 
+use crate::task::incr_syscall_stats;
+
+/// syscall id to index
+pub fn syscall_to_index(syscall_id: usize) -> isize {
+    match syscall_id {
+        SYSCALL_WRITE => 0,
+        SYSCALL_EXIT => 1,
+        SYSCALL_YIELD => 2,
+        SYSCALL_GET_TIME => 3,
+        SYSCALL_TRACE => 4,
+        _ => -1,
+    }
+}
+
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+    let index = syscall_to_index(syscall_id);
+
+    if index != -1 {
+        incr_syscall_stats(index as usize);
+    }
+
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
